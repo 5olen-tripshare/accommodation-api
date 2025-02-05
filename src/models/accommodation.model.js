@@ -3,14 +3,14 @@ const mongoose = require("mongoose");
 const accommodationSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    location: { type: String, required: true },
+    localisation: { type: String, required: true },
     price: { type: Number, required: true },
     description: { type: String },
     image: [{ type: String }],
-    reviews: {
-      rating: { type: Number, default: 0 },
-      count: { type: Number, default: 0 },
-    },
+    // reviews: {
+    //   rating: { type: Number, default: 0 },
+    //   count: { type: Number, default: 0 },
+    // },
     topCriteria: [{ type: String }],
     interests: [{ type: String }],
     isAvailable: { type: Boolean, default: true },

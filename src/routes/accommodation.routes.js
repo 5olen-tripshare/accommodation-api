@@ -1,4 +1,7 @@
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const {
   createAccommodation,
   getAllAccommodations,
@@ -6,6 +9,30 @@ const {
   deleteAccommodation,
   updatePartialAccommodation,
 } = require("../services/accommodation.service");
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const userId = req.body.userId;
+
+    if (!userId) {
+      return cb(new Error("L'id utilisateur est requis"), null);
+    }
+
+    const userFolder = path.join("/tmp/my-uploads", userId);
+
+    if (!fs.existsSync(userFolder)) {
+      fs.mkdirSync(userFolder, { recursive: true });
+    }
+
+    cb(null, userFolder);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
@@ -32,9 +59,52 @@ const router = express.Router();
  *       201:
  *         description: Hébergement créé avec succès.
  */
-router.post("/", async (req, res) => {
+router.post("/", upload.array("files", 20), async (req, res) => {
   try {
-    const accommodation = await createAccommodation(req.body);
+    const {
+      userId,
+      name,
+      localisation,
+      price,
+      topCriteria,
+      description,
+      interests,
+      isAvailable,
+      totalPlaces,
+      numberRoom,
+      squareMeter,
+      bedRoom,
+      ancienneImage,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "L'id utilisateur est requis" });
+    }
+
+    const image = req.files
+      ? req.files.map((file) => `/uploads/${userId}/${file.filename}`)
+      : [];
+
+    if (ancienneImage) {
+      image.push(...ancienneImage);
+    }
+
+    const newAccommodation = {
+      name: name,
+      localisation: localisation,
+      price: price,
+      topCriteria: topCriteria || [],
+      interests: interests || [],
+      description: description,
+      squareMeter: squareMeter,
+      totalPlaces: totalPlaces,
+      numberRoom: numberRoom,
+      bedRoom: bedRoom,
+      image: image,
+      isAvailable: isAvailable,
+    };
+
+    const accommodation = await createAccommodation(newAccommodation);
     res.status(201).json(accommodation);
   } catch (error) {
     res.status(400).json({ message: error.message });

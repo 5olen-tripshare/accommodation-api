@@ -13,6 +13,8 @@ setupSwagger(app);
 
 app.use("/api/accommodations", accommodationRoutes);
 
+app.use("tmp/my-uploads", express.static("uploads"));
+
 app.get("/", (req, res) => {
   res.send("Microservice accommodation is running...");
 });
