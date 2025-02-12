@@ -1,3 +1,4 @@
+require("dotenv").config();
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
@@ -11,7 +12,7 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:5000",
+        url: process.env.SERVER_URI,
         description: "Serveur de développement",
       },
     ],
@@ -23,7 +24,7 @@ const swaggerSpec = swaggerJsdoc(options);
 
 const setupSwagger = (app) => {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  console.log("Swagger disponible sur http://localhost:5000/api-docs");
+  console.log("Swagger disponible sur " + process.env.SERVER_URI + "/api-docs");
 };
 
 module.exports = setupSwagger;

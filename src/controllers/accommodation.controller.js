@@ -42,15 +42,16 @@ const deleteAccommodation = async (req, res) => {
   }
 };
 
-const updatePartialAccommodation = async (req, res) => {
+const updateAccommodationService = async (req, res) => {
   try {
-    const updatedAccommodation =
-      await AccommodationService.updatePartialAccommodation(
-        req.params.id,
-        req.body
-      );
+    const updatedAccommodation = await AccommodationService.updateAccommodation(
+      req.params.id,
+      req.body
+    );
+
     if (!updatedAccommodation)
       return res.status(404).json({ message: "Hébergement non trouvé" });
+
     res.json(updatedAccommodation);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -62,5 +63,5 @@ module.exports = {
   getAccommodationById,
   createAccommodation,
   deleteAccommodation,
-  updatePartialAccommodation,
+  updateAccommodationService,
 };

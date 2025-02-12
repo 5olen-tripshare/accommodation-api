@@ -2,37 +2,68 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const app = express();
+
 const {
   createAccommodation,
   getAllAccommodations,
   getAccommodationById,
   deleteAccommodation,
-  updatePartialAccommodation,
+  updateAccommodation,
 } = require("../services/accommodation.service");
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const userId = req.body.userId;
-
-    if (!userId) {
-      return cb(new Error("L'id utilisateur est requis"), null);
-    }
-
-    const userFolder = path.join("/tmp/my-uploads", userId);
-
-    if (!fs.existsSync(userFolder)) {
+  destination: (req, file, cb) => {
+    const baseFolder = path.resolve(__dirname, "../../uploads");
+    const userFolder = path.join(baseFolder);
+    if (!fs.existsSync(baseFolder)) {
       fs.mkdirSync(userFolder, { recursive: true });
     }
 
     cb(null, userFolder);
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix);
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
   },
 });
 
 const upload = multer({ storage: storage });
+
+const uploadMiddleware = (req, res, next) => {
+  upload.array("files", 20)(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    const files = req.files || [];
+    const errors = [];
+
+    files.forEach((file) => {
+      const allowedTypes = ["image/jpeg", "image/png"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!allowedTypes.includes(file.mimetype)) {
+        errors.push(`Invalid file type: ${file.originalname}`);
+      }
+
+      if (file.size > maxSize) {
+        errors.push(`File too large: ${file.originalname}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      files.forEach((file) => {
+        fs.unlinkSync(file.path);
+      });
+
+      return res.status(400).json({ errors });
+    }
+
+    req.files = files;
+
+    next();
+  });
+};
 
 const router = express.Router();
 
@@ -59,7 +90,7 @@ const router = express.Router();
  *       201:
  *         description: Hébergement créé avec succès.
  */
-router.post("/", upload.array("files", 20), async (req, res) => {
+router.post("/", uploadMiddleware, async (req, res) => {
   try {
     const {
       userId,
@@ -81,9 +112,9 @@ router.post("/", upload.array("files", 20), async (req, res) => {
       return res.status(400).json({ message: "L'id utilisateur est requis" });
     }
 
-    const image = req.files
-      ? req.files.map((file) => `/uploads/${userId}/${file.filename}`)
-      : [];
+    console.log(req.files);
+
+    const image = req.files ? req.files.map((file) => `${file.filename}`) : [];
 
     if (ancienneImage) {
       image.push(...ancienneImage);
@@ -184,8 +215,8 @@ router.delete("/:id", async (req, res) => {
 /**
  * @swagger
  * /api/accommodations/{id}:
- *   patch:
- *     summary: Modifier partiellement un hébergement
+ *   put:
+ *     summary: Remplace complètement un hébergement
  *     tags: [Accommodations]
  *     parameters:
  *       - name: id
@@ -205,12 +236,75 @@ router.delete("/:id", async (req, res) => {
  *       404:
  *         description: Hébergement non trouvé.
  */
-router.patch("/:id", async (req, res) => {
+router.put("/:id", uploadMiddleware, async (req, res) => {
   try {
-    const accommodation = await updatePartialAccommodation(
+    const {
+      userId,
+      name,
+      localisation,
+      price,
+      topCriteria,
+      description,
+      interests,
+      isAvailable,
+      totalPlaces,
+      numberRoom,
+      squareMeter,
+      bedRoom,
+      ancienneImage,
+    } = req.body;
+
+    if (
+      !userId ||
+      !name ||
+      !localisation ||
+      !price ||
+      !squareMeter ||
+      !totalPlaces ||
+      !numberRoom ||
+      !bedRoom
+    ) {
+      return res.status(400).json({
+        message: "Tous les champs obligatoires doivent être fournis.",
+      });
+    }
+
+    console.log(req.files);
+
+    const image =
+      req.files && req.files.length > 0
+        ? req.files.map((file) => `${file.filename}`)
+        : [];
+
+    if (ancienneImage) {
+      image.push(...ancienneImage);
+    }
+
+    const updatedAccommodation = {
+      userId,
+      name,
+      localisation,
+      price,
+      topCriteria: topCriteria || [],
+      interests: interests || [],
+      description,
+      squareMeter,
+      totalPlaces,
+      numberRoom,
+      bedRoom,
+      image,
+      isAvailable,
+    };
+
+    const accommodation = await updateAccommodation(
       req.params.id,
-      req.body
+      updatedAccommodation
     );
+
+    if (!accommodation) {
+      return res.status(404).json({ message: "Hébergement non trouvé" });
+    }
+
     res.json(accommodation);
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -21,15 +21,11 @@ const deleteAccommodation = async (id) => {
   return await Accommodation.findByIdAndDelete(id);
 };
 
-const updatePartialAccommodation = async (id, data) => {
-  return await Accommodation.findByIdAndUpdate(
-    id,
-    { $set: data },
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+const updateAccommodation = async (id, data) => {
+  return await Accommodation.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
 };
 
 module.exports = {
@@ -37,5 +33,5 @@ module.exports = {
   getAllAccommodations,
   getAccommodationById,
   deleteAccommodation,
-  updatePartialAccommodation,
+  updateAccommodation,
 };
