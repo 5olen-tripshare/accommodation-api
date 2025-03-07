@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const verifyJWT = require("../middlewares/auth.middleware");
 const app = express();
 
 const {
@@ -67,30 +68,7 @@ const uploadMiddleware = (req, res, next) => {
 
 const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Accommodations
- *   description: API de gestion des hébergements
- */
-
-/**
- * @swagger
- * /api/accommodations:
- *   post:
- *     summary: Créer un nouvel hébergement
- *     tags: [Accommodations]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       201:
- *         description: Hébergement créé avec succès.
- */
-router.post("/", uploadMiddleware, async (req, res) => {
+router.post("/", verifyJWT, uploadMiddleware, async (req, res) => {
   try {
     const {
       userId,
@@ -108,9 +86,7 @@ router.post("/", uploadMiddleware, async (req, res) => {
       ancienneImage,
     } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({ message: "L'id utilisateur est requis" });
-    }
+    const userIdFromToken = req.user.sub;
 
     console.log(req.files);
 
@@ -121,6 +97,7 @@ router.post("/", uploadMiddleware, async (req, res) => {
     }
 
     const newAccommodation = {
+      userId: userIdFromToken,
       name: name,
       localisation: localisation,
       price: price,
@@ -142,16 +119,6 @@ router.post("/", uploadMiddleware, async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/accommodations:
- *   get:
- *     summary: Récupérer tous les hébergements
- *     tags: [Accommodations]
- *     responses:
- *       200:
- *         description: Liste des hébergements.
- */
 router.get("/", async (req, res) => {
   try {
     const accommodations = await getAllAccommodations();
@@ -161,22 +128,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/accommodations/{id}:
- *   get:
- *     summary: Récupérer un hébergement par son ID
- *     tags: [Accommodations]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Hébergement trouvé.
- */
 router.get("/:id", async (req, res) => {
   try {
     const accommodation = await getAccommodationById(req.params.id);
@@ -187,23 +138,19 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/accommodations/{id}:
- *   delete:
- *     summary: Supprimer un hébergement par son ID
- *     tags: [Accommodations]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Hébergement supprimé avec succès.
- */
-router.delete("/:id", async (req, res) => {
+router.get("/user", verifyJWT, async (req, res) => {
+  try {
+    const userIdFromToken = req.user.sub;
+
+    const accommodation = await getAccommodationsByUserId(userIdFromToken);
+    if (!accommodation) return res.status(404).json({ message: "Non trouvé" });
+    res.json(accommodation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/:id", verifyJWT, async (req, res) => {
   try {
     await deleteAccommodation(req.params.id);
     res.json({ message: "Hébergement supprimé" });
@@ -212,32 +159,9 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/accommodations/{id}:
- *   put:
- *     summary: Remplace complètement un hébergement
- *     tags: [Accommodations]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Hébergement mis à jour avec succès.
- *       404:
- *         description: Hébergement non trouvé.
- */
-router.put("/:id", uploadMiddleware, async (req, res) => {
+router.put("/:id", verifyJWT, uploadMiddleware, async (req, res) => {
   try {
+    const userIdFromToken = req.user.sub;
     const {
       userId,
       name,
@@ -281,7 +205,7 @@ router.put("/:id", uploadMiddleware, async (req, res) => {
     }
 
     const updatedAccommodation = {
-      userId,
+      userIdFromToken,
       name,
       localisation,
       price,

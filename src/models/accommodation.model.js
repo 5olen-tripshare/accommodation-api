@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const accommodationSchema = new mongoose.Schema(
   {
+    userId: { type: String, required: true },
     name: { type: String, required: true },
     localisation: { type: String, required: true },
     price: { type: Number, required: true },

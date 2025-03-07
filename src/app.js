@@ -1,16 +1,28 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 const accommodationRoutes = require("./routes/accommodation.routes");
-const setupSwagger = require("./config/swagger.config");
 
 const app = express();
 
-app.use(cors());
-app.use(bodyParser.json());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Authorization",
+      "Content-Type",
+      "Accept",
+      "Origin",
+      "X-Requested-With",
+    ],
+    credentials: true,
+    optionsSuccessStatus: 204,
+  })
+);
 
-setupSwagger(app);
+app.use(express.json());
 
 app.use("/api/accommodations", accommodationRoutes);
 

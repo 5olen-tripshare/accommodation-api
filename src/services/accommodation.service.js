@@ -17,6 +17,15 @@ const getAccommodationById = async (id) => {
   return await Accommodation.findById(id);
 };
 
+const getAccommodationsByUserId = async (userId) => {
+  try {
+    const accommodations = await Accommodation.find({ userId });
+    return accommodations;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
 const deleteAccommodation = async (id) => {
   return await Accommodation.findByIdAndDelete(id);
 };
@@ -34,4 +43,5 @@ module.exports = {
   getAccommodationById,
   deleteAccommodation,
   updateAccommodation,
+  getAccommodationsByUserId,
 };
