@@ -11,6 +11,8 @@ const {
   getAccommodationById,
   deleteAccommodation,
   updateAccommodation,
+  getAccommodationsByUserId,
+  findAccommodationsByNameOrLocation,
 } = require("../services/accommodation.service");
 
 const storage = multer.diskStorage({
@@ -128,9 +130,11 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/user", verifyJWT, async (req, res) => {
   try {
-    const accommodation = await getAccommodationById(req.params.id);
+    const userIdFromToken = req.user.sub;
+
+    const accommodation = await getAccommodationsByUserId(userIdFromToken);
     if (!accommodation) return res.status(404).json({ message: "Non trouvé" });
     res.json(accommodation);
   } catch (error) {
@@ -138,11 +142,20 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.get("/user", verifyJWT, async (req, res) => {
+router.get("/search", async (req, res) => {
   try {
-    const userIdFromToken = req.user.sub;
+    const { search } = req.query;
 
-    const accommodation = await getAccommodationsByUserId(userIdFromToken);
+    const accommodations = await findAccommodationsByNameOrLocation(search);
+    res.json(accommodations);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const accommodation = await getAccommodationById(req.params.id);
     if (!accommodation) return res.status(404).json({ message: "Non trouvé" });
     res.json(accommodation);
   } catch (error) {

@@ -10,7 +10,7 @@ const createAccommodation = async (data) => {
 };
 
 const getAllAccommodations = async () => {
-  return await Accommodation.find();
+  return await Accommodation.find({ isAvailable: true });
 };
 
 const getAccommodationById = async (id) => {
@@ -37,6 +37,23 @@ const updateAccommodation = async (id, data) => {
   });
 };
 
+const findAccommodationsByNameOrLocation = async (search) => {
+  try {
+    const accommodations = await Accommodation.find({
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { localisation: { $regex: search, $options: "i" } },
+      ],
+      isAvailable: true,
+    });
+    return accommodations;
+  } catch (error) {
+    throw new Error(
+      `Erreur lors de la recherche d'hébergements: ${error.message}`
+    );
+  }
+};
+
 module.exports = {
   createAccommodation,
   getAllAccommodations,
@@ -44,4 +61,5 @@ module.exports = {
   deleteAccommodation,
   updateAccommodation,
   getAccommodationsByUserId,
+  findAccommodationsByNameOrLocation,
 };
