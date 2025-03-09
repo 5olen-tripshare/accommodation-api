@@ -73,7 +73,6 @@ const router = express.Router();
 router.post("/", verifyJWT, uploadMiddleware, async (req, res) => {
   try {
     const {
-      userId,
       name,
       localisation,
       price,
@@ -176,7 +175,6 @@ router.put("/:id", verifyJWT, uploadMiddleware, async (req, res) => {
   try {
     const userIdFromToken = req.user.sub;
     const {
-      userId,
       name,
       localisation,
       price,
@@ -192,7 +190,6 @@ router.put("/:id", verifyJWT, uploadMiddleware, async (req, res) => {
     } = req.body;
 
     if (
-      !userId ||
       !name ||
       !localisation ||
       !price ||
